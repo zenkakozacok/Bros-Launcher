@@ -72,7 +72,29 @@ impl ServerList {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
-        Self { servers, path }
+        let mut list = Self { servers, path };
+        list.ensure_featured();
+        list
+    }
+
+    /// Bros Launcher: the Bros-MC server is always in the list, added once on
+    /// first start (the player can still move it).
+    fn ensure_featured(&mut self) {
+        const NAME: &str = "Bros-MC";
+        const ADDRESS: &str = "bros-mc.com";
+        if self.servers.iter().any(|s| s.address.eq_ignore_ascii_case(ADDRESS)) {
+            return;
+        }
+        self.servers.insert(
+            0,
+            ServerEntry {
+                name: NAME.to_owned(),
+                address: ADDRESS.to_owned(),
+                protocol: None,
+                extra: serde_json::Map::new(),
+            },
+        );
+        self.save();
     }
 
     pub fn save(&self) {

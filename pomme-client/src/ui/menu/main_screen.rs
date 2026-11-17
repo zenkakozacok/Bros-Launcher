@@ -146,11 +146,11 @@ impl MainMenu {
         });
         cy += accent_bar_h + 14.0 * s;
 
-        let pomme_w = text_width_fn("Pomme", title_size);
+        let pomme_w = text_width_fn("Bros Launcher", title_size);
         elements.push(MenuElement::Text {
             x: btn_x,
             y: cy,
-            text: "Pomme".into(),
+            text: "Bros Launcher".into(),
             scale: title_size,
             color: COL_WORDMARK,
             centered: false,
@@ -465,7 +465,7 @@ impl MainMenu {
             color: footer_col,
             centered: false,
         });
-        let copy = format!("Pomme {}", crate::update::version());
+        let copy = format!("Bros Launcher {} (on Pomme)", crate::update::version());
         let copy_w = text_width_fn(&copy, footer_size);
         elements.push(MenuElement::Text {
             x: screen_w - footer_pad - copy_w,

@@ -655,7 +655,7 @@ fn create_window(
     // otherwise make it the desktop size, and it never reports visibility, so
     // the first frame couldn't show a hidden one.
     let mut window_attrs = Window::default_attributes()
-        .with_title("Pomme")
+        .with_title("Bros Launcher")
         .with_fullscreen(core.display_mode.fullscreen_for(monitor))
         .with_visible(cfg!(mobile))
         .with_active(!core.test_window)

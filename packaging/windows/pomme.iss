@@ -4,12 +4,12 @@
 ; usage: iscc /DAppVersion=<x.y.z> /DBundle=<bundle-dir> /DOutDir=<out-dir> /DOutName=<name> pomme.iss
 
 [Setup]
-AppId={{22F91093-7D94-4FA4-9045-1F5CBA3D82D5}
-AppName=Pomme
+AppId={{6B1E3C2A-8F4D-4B7E-9A51-B705C0D1E8A3}
+AppName=Bros Launcher
 AppVersion={#AppVersion}
-AppPublisher=PommeMC
-AppPublisherURL=https://github.com/PommeMC/Client
-DefaultDirName={localappdata}\Programs\Pomme
+AppPublisher=Bros-MC
+AppPublisherURL=https://github.com/zenkakozacok/bros-launcher
+DefaultDirName={localappdata}\Programs\Bros Launcher
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
@@ -38,11 +38,11 @@ Source: "{#Bundle}\*"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\pomme-client\third-party\OpenAL-Soft-*.txt"; DestDir: "{app}\uninstall"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Pomme"; Filename: "{app}\pomme-client.exe"
-Name: "{autodesktop}\Pomme"; Filename: "{app}\pomme-client.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Bros Launcher"; Filename: "{app}\pomme-client.exe"
+Name: "{autodesktop}\Bros Launcher"; Filename: "{app}\pomme-client.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\pomme-client.exe"; Description: "{cm:LaunchProgram,Pomme}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\pomme-client.exe"; Description: "{cm:LaunchProgram,Bros Launcher}"; Flags: nowait postinstall skipifsilent
 
 ; What the updater, the unpacked natives and releases from before OpenAL was
 ; embedded leave behind; the rest of the data folder (%LOCALAPPDATA%\Pomme)
