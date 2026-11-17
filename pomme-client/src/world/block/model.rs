@@ -1535,6 +1535,20 @@ pub fn custom_model_data_key(item_name: &str, when: &str) -> String {
     format!("__pomme_{item_name}_cmd_{when}")
 }
 
+/// The model a [`custom_model_data_key`] draws: its case's first model
+/// reference (`namespace:path`), for display transforms.
+pub fn custom_model_data_model_ref(json: &serde_json::Value, when: &str) -> Option<String> {
+    custom_model_data_cases(json)
+        .into_iter()
+        .find(|(w, _)| *w == when)
+        .and_then(|(_, node)| first_model_ref(static_case_branch(node)))
+}
+
+/// Splits a [`custom_model_data_key`] into its item and case.
+pub fn parse_custom_model_data_key(key: &str) -> Option<(&str, &str)> {
+    key.strip_prefix("__pomme_")?.split_once("_cmd_")
+}
+
 /// A custom-model-data case's branch as an inventory icon draws it: through
 /// `display_context`, trim and other per-stack selects to their fallback.
 fn static_case_branch(mut node: &serde_json::Value) -> &serde_json::Value {

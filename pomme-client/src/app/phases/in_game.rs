@@ -5004,6 +5004,24 @@ pub fn update_game(
             },
             light: player_light,
             armor: armor_render_infos(game.player.inventory.armor_slots()),
+            // Bros Launcher: the F5 body holds its items too.
+            held_items: if shown && !spectating {
+                let main_right = core.menu.main_hand_right();
+                let selected = core.input.selected_slot() as usize;
+                let main = game
+                    .player
+                    .inventory
+                    .hotbar_slots()
+                    .get(selected)
+                    .cloned()
+                    .unwrap_or(pomme_item::ItemStack::Empty);
+                let off = game.player.inventory.offhand().clone();
+                [true, false].map(|right| {
+                    held_stack(if right == main_right { &main } else { &off })
+                })
+            } else {
+                [None, None]
+            },
             has_red_overlay: has_red_overlay(game.player.hurt_time, game.player.death_time),
             death_time: render_death_time(game.player.death_time, partial_tick),
             attack_time: game

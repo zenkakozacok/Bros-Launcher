@@ -74,6 +74,11 @@ fn resolve_item_model_path(
     in_use: bool,
     items: &BTreeMap<ResourceId, ResourceContent>,
 ) -> Option<String> {
+    if let Some((item, when)) = crate::world::block::model::parse_custom_model_data_key(name) {
+        let id = ResourceId::from_parts("minecraft", &format!("items/{item}.json")).ok()?;
+        let item_json = read_json(items.get(&id)?)?;
+        return crate::world::block::model::custom_model_data_model_ref(&item_json, when);
+    }
     let id = ResourceId::from_parts("minecraft", &format!("items/{name}.json")).ok()?;
     let item_json = read_json(items.get(&id)?)?;
     in_use
@@ -97,7 +102,9 @@ fn resolve_display(
         }
         depth += 1;
 
-        let id = ResourceId::from_parts("minecraft", &format!("models/{path}.json")).ok()?;
+        // `bros:item/scythe` lives in its own namespace.
+        let (namespace, bare) = path.split_once(':').unwrap_or(("minecraft", path.as_str()));
+        let id = ResourceId::from_parts(namespace, &format!("models/{bare}.json")).ok()?;
         let json = read_json(models.get(&id)?)?;
 
         if let Some(display) = json.get("display")
