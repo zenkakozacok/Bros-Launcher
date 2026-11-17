@@ -274,6 +274,18 @@ impl BlockRenderAssets {
     /// The model `name` draws with for this stack: its loaded variant
     /// (vanilla `Charge` select property) if it bakes one, else `name`.
     pub fn stack_model_key(&self, name: &str, stack: &ItemStackData) -> String {
+        let has = |key: &String| {
+            self.item_models.contains_key(key) || self.flat_item_texture_keys.contains_key(key)
+        };
+        if let Some(data) = stack.get_component::<CustomModelData>()
+            && let Some(key) = data
+                .strings
+                .iter()
+                .map(|when| model::custom_model_data_key(name, when))
+                .find(|key| has(key))
+        {
+            return key;
+        }
         let charge = stack
             .component::<ChargedProjectiles>()
             .filter(|c| !c.items.is_empty())

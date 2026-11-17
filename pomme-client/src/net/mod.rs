@@ -692,6 +692,11 @@ pub enum NetworkEvent {
         actions: pomme_protocol::player_info::Actions,
         entries: Vec<crate::player::tab_list::PlayerInfoEntry>,
     },
+    /// A mannequin's profile skin (`textures` property), drawn as a player.
+    EntityProfileSkin {
+        id: i32,
+        textures: Option<String>,
+    },
     PlayerInfoRemove {
         uuids: Vec<uuid::Uuid>,
     },

@@ -32,6 +32,8 @@ pub enum Serializer {
     VillagerData,
     Pose,
     Variant(Variant),
+    /// `RESOLVABLE_PROFILE` (a mannequin's profile): its `textures` property.
+    Profile,
     Skip(Shape),
 }
 
@@ -55,6 +57,7 @@ impl Serializer {
             Self::OptionalBlockPos => &Shape::Optional(&Shape::Long),
             Self::VillagerData => &Shape::Struct(&[Shape::VarInt, Shape::VarInt, Shape::VarInt]),
             Self::ItemStack => return Ok(false),
+            Self::Profile => &RESOLVABLE_PROFILE,
             Self::Skip(Shape::Ref(shape) | Shape::List(_, shape))
                 if std::ptr::eq(*shape, &PARTICLE) =>
             {
@@ -88,6 +91,8 @@ pub enum Value {
     Pose(u32),
     /// A registry id.
     Variant(Variant, u32),
+    /// A profile's skin `textures` property value, if it carries one.
+    Profile(Option<String>),
     /// A value the client doesn't read.
     Other,
 }
@@ -183,7 +188,7 @@ macro_rules! serializers_26_2 {
     S::Skip(Struct(&[Float, Float, Float])),
     // QUATERNION: ByteBufCodecs.QUATERNIONF
     S::Skip(Struct(&[Float, Float, Float, Float])),
-    S::Skip(Ref(&RESOLVABLE_PROFILE)),
+    S::Profile,
     // HUMANOID_ARM
     S::Skip(ENUM),
     $($extra),*
@@ -239,6 +244,34 @@ impl ItemCodec {
             },
             S::Pose => Value::Pose(r.varint()?),
             S::Variant(variant) => Value::Variant(*variant, r.varint()?),
+            S::Profile => {
+                // ResolvableProfile: Either(full GameProfile, Partial), then
+                // PlayerSkin.Patch (skipped).
+                let properties = |r: &mut Reader| {
+                    r.list(16, |r| {
+                        let name = r.utf(64)?.to_owned();
+                        let value = r.utf(32767)?.to_owned();
+                        r.optional(|r| r.utf(1024).map(|_| ()))?;
+                        Ok((name, value))
+                    })
+                };
+                let props = if r.bool()? {
+                    r.uuid()?;
+                    r.utf(16)?;
+                    properties(r)?
+                } else {
+                    r.optional(|r| r.utf(16).map(|_| ()))?;
+                    r.optional(Reader::uuid)?;
+                    properties(r)?
+                };
+                for _ in 0..3 {
+                    r.optional(|r| r.utf(MAX_STRING_LENGTH).map(|_| ()))?;
+                }
+                r.optional(Reader::bool)?;
+                Value::Profile(
+                    props.into_iter().find(|(name, _)| name == "textures").map(|(_, v)| v),
+                )
+            }
             S::Skip(shape) => {
                 self.skip(r, shape)?;
                 Value::Other
@@ -422,7 +455,8 @@ mod tests {
             (5, 1, &[9]),
         ]);
         let decoded = values(&bytes);
-        assert_eq!(decoded[..5], [const { Value::Other }; 5]);
+        assert_eq!(decoded[..4], [const { Value::Other }; 4]);
+        assert_eq!(decoded[4], Value::Profile(None));
         assert_eq!(decoded[5], Value::Int(9));
     }
 

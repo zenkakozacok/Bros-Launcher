@@ -126,11 +126,6 @@ jobs:
             artifact: pomme-client
             name: pomme-client-linux-x64-gnu
             openal_classifier: natives-linux
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact: pomme-client
-            name: pomme-client-macos-arm64
-            openal_classifier: natives-macos-arm64
 
     runs-on: ${{ matrix.os }}
     steps:

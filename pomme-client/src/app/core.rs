@@ -3139,6 +3139,13 @@ impl AppCore {
                     y_rot_deg,
                     head_y_rot_deg,
                 } => {
+                    // Bros Launcher: a mannequin (server NPCs) is a player
+                    // model with its own profile skin.
+                    let entity_type = if entity_type == pomme_registry::builtin::EntityKind::Mannequin {
+                        pomme_registry::builtin::EntityKind::Player
+                    } else {
+                        entity_type
+                    };
                     game.entity_positions.insert(id, position);
                     game.entity_kinds.insert(id, entity_type);
                     game.silent_entities.remove(&id);
@@ -3692,6 +3699,13 @@ impl AppCore {
                         }
                     }
                     game.tab_list.apply_update(&actions, &entries);
+                }
+                NetworkEvent::EntityProfileSkin { id, textures } => {
+                    if let Some(entity) = game.entity_store.living.get(&id)
+                        && let Some(uuid) = entity.player_uuid
+                    {
+                        self.queue_player_skin(uuid, textures);
+                    }
                 }
                 NetworkEvent::PlayerInfoRemove { uuids } => {
                     for uuid in &uuids {

@@ -8,6 +8,28 @@ use crate::resources::{ResourceId, ResourceManager};
 
 const LANG_PATH: &str = "lang/en_us.json";
 
+/// Bros Launcher: the language drawn over `en_us`, from the system locale
+/// (Russian for ru/uk/be/kk systems), or `BROS_LANG=en_us|ru_ru`.
+fn overlay_path() -> Option<String> {
+    let code = std::env::var("BROS_LANG")
+        .ok()
+        .or_else(sys_locale::get_locale)
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .replace('-', "_");
+    if code.starts_with("en_us") {
+        return None;
+    }
+    let lang = if ["ru", "uk", "be", "kk"].iter().any(|p| code.starts_with(p)) {
+        "ru_ru".to_string()
+    } else if code.len() >= 5 && code.contains('_') {
+        code[..5].to_string()
+    } else {
+        return None;
+    };
+    Some(format!("lang/{lang}.json"))
+}
+
 /// Values are interned, so strings handed out before a reload stay valid.
 static LANG: RwLock<Option<HashMap<String, &'static str>>> = RwLock::new(None);
 
@@ -52,8 +74,13 @@ fn read(resources: &dyn ResourceManager) -> Option<HashMap<String, String>> {
     namespaces.sort_unstable();
     let mut translations = HashMap::new();
     let mut found = false;
-    for namespace in namespaces {
-        let Ok(id) = ResourceId::from_parts(&namespace, LANG_PATH) else {
+    let overlay = overlay_path();
+    let paths: Vec<&str> = std::iter::once(LANG_PATH).chain(overlay.as_deref()).collect();
+    for (namespace, path) in paths
+        .iter()
+        .flat_map(|path| namespaces.iter().map(move |ns| (ns.clone(), *path)))
+    {
+        let Ok(id) = ResourceId::from_parts(&namespace, path) else {
             continue;
         };
         let stack = match resources.get_resource_stack(&id) {

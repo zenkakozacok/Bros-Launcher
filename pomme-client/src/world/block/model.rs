@@ -1019,6 +1019,13 @@ pub fn bake_item_models(
             continue;
         }
         bake(item_name, &parts);
+        for (when, node) in custom_model_data_cases(&json) {
+            let mut parts = Vec::new();
+            collect_parts_from_node(static_case_branch(node), None, &mut parts);
+            if !parts.is_empty() {
+                bake(&custom_model_data_key(item_name, when), &parts);
+            }
+        }
         for (charge, node) in charge_type_cases(&json) {
             let mut parts = Vec::new();
             collect_parts_from_node(node, None, &mut parts);
@@ -1474,7 +1481,8 @@ fn find_first_item_model_node(json: &serde_json::Value) -> Option<&serde_json::V
 /// hovers), and for trimmed armor, which also needs the
 /// `paletted_permutations` atlas source for its trim textures.
 fn default_stack_branch(mut node: &serde_json::Value) -> &serde_json::Value {
-    const COMPONENT_PROPERTIES: [&str; 3] = ["trim_material", "charge_type", "block_state"];
+    const COMPONENT_PROPERTIES: [&str; 4] =
+        ["trim_material", "charge_type", "block_state", "custom_model_data"];
     while node_type(node) == Some("select")
         && node_property(node).is_some_and(|property| COMPONENT_PROPERTIES.contains(&property))
         && let Some(fallback) = node.get("fallback")
@@ -1518,6 +1526,53 @@ fn node_type(node: &serde_json::Value) -> Option<&str> {
 /// `rocket`).
 pub fn charge_model_key(item_name: &str, charge: &str) -> String {
     format!("__pomme_{item_name}_charge_{charge}")
+}
+
+/// The item-model key a root `minecraft:custom_model_data` select's case
+/// bakes under, for a stack whose custom model data string is `when`
+/// (resource-pack custom items: talismans, exclusive weapons).
+pub fn custom_model_data_key(item_name: &str, when: &str) -> String {
+    format!("__pomme_{item_name}_cmd_{when}")
+}
+
+/// A custom-model-data case's branch as an inventory icon draws it: through
+/// `display_context`, trim and other per-stack selects to their fallback.
+fn static_case_branch(mut node: &serde_json::Value) -> &serde_json::Value {
+    const PROPERTIES: [&str; 5] =
+        ["display_context", "trim_material", "charge_type", "block_state", "custom_model_data"];
+    while node_type(node) == Some("select")
+        && node_property(node).is_some_and(|property| PROPERTIES.contains(&property))
+        && let Some(fallback) = node.get("fallback")
+    {
+        node = fallback;
+    }
+    node
+}
+
+/// Each string `when` of an item definition's root
+/// `minecraft:custom_model_data` select, with its model node.
+fn custom_model_data_cases(json: &serde_json::Value) -> Vec<(&str, &serde_json::Value)> {
+    let Some(root) = json.get("model").filter(|root| {
+        node_type(root) == Some("select") && node_property(root) == Some("custom_model_data")
+    }) else {
+        return Vec::new();
+    };
+    let cases = root.get("cases").and_then(serde_json::Value::as_array);
+    cases
+        .into_iter()
+        .flatten()
+        .filter_map(|case| Some((case.get("when")?, case.get("model")?)))
+        .flat_map(|(when, model)| {
+            let whens = match when {
+                serde_json::Value::Array(whens) => whens.iter().collect(),
+                when => vec![when],
+            };
+            whens
+                .into_iter()
+                .filter_map(serde_json::Value::as_str)
+                .map(move |when| (when, model))
+        })
+        .collect()
 }
 
 /// Each `when` of an item definition's root `minecraft:charge_type` select,

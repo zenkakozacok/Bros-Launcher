@@ -139,6 +139,11 @@ fn send_data_value(
                 absorption: *absorption,
             }
         }
+        // Mannequin.DATA_PROFILE: server NPCs (Citizens) on 1.21.9+.
+        (_, Value::Profile(textures)) => NetworkEvent::EntityProfileSkin {
+            id,
+            textures: textures.clone(),
+        },
         // Entity.DATA_CUSTOM_NAME; needed for jeb_ sheep detection.
         (2, Value::OptionalComponent(name)) => {
             let (name, spans) = match name {
