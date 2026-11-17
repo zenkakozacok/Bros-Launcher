@@ -4294,6 +4294,44 @@ pub fn compute_humanoid_anim(
     anim
 }
 
+/// Vanilla `HumanoidModel.setupAttackAnimation` for the right (main) arm:
+/// the body twists and the arm swings down across. Vanilla's 0 means idle;
+/// a finished swing reads 1, where every term is zero as well.
+pub fn apply_humanoid_attack(
+    anim: &mut PartAnim,
+    model: &BakedEntityModel,
+    attack_time: f32,
+    head_x_rot_deg: f32,
+) {
+    use std::f32::consts::PI;
+    if attack_time <= 0.0 || attack_time >= 1.0 {
+        return;
+    }
+    let find = |name: &str| model.parts.iter().position(|p| p.name == name);
+    let body_y = (attack_time.sqrt() * PI * 2.0).sin() * 0.2;
+    let mut f = 1.0 - attack_time;
+    f *= f;
+    f *= f;
+    f = 1.0 - f;
+    let g = (f * PI).sin();
+    let h = (attack_time * PI).sin() * -(head_x_rot_deg.to_radians() - 0.7) * 0.75;
+    if let Some(i) = find("body") {
+        anim.rotation_mut(model, i).y += body_y;
+    }
+    if let Some(i) = find("left_arm") {
+        let r = anim.rotation_mut(model, i);
+        r.y += body_y;
+        r.x += body_y;
+    }
+    if let Some(i) = find("right_arm") {
+        let r = anim.rotation_mut(model, i);
+        r.y += body_y;
+        r.x -= g * 1.2 + h;
+        r.y += body_y * 2.0;
+        r.z += (attack_time * PI).sin() * -0.4;
+    }
+}
+
 pub fn compute_quadruped_anim(
     model: &BakedEntityModel,
     head_x_rot_deg: f32,

@@ -76,7 +76,42 @@ static INTERNED: LazyLock<Mutex<HashSet<&'static str>>> = LazyLock::new(Default:
 /// Vanilla `ClientLanguage.loadFrom` for `en_us`: every namespace's stack,
 /// lowest pack first. With no file at all (before a first-run download) the
 /// previous table stays.
+/// English menu label → translation key, for [`ui`].
+static EN_REVERSE: RwLock<Option<HashMap<String, String>>> = RwLock::new(None);
+
+/// Bros Launcher: Pomme draws its menus from English literals; in Russian,
+/// a literal that is a vanilla `en_us` value is drawn as its `ru_ru` value.
+pub fn ui(text: &str) -> std::borrow::Cow<'_, str> {
+    if !RUSSIAN.load(std::sync::atomic::Ordering::Relaxed) || text.is_empty() {
+        return std::borrow::Cow::Borrowed(text);
+    }
+    let reverse = EN_REVERSE.read().unwrap_or_else(|e| e.into_inner());
+    if let Some(key) = reverse.as_ref().and_then(|m| m.get(text))
+        && let Some(value) = translate(key)
+    {
+        return std::borrow::Cow::Owned(value.to_string());
+    }
+    std::borrow::Cow::Borrowed(text)
+}
+
+static RUSSIAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 pub fn load(resources: &dyn ResourceManager) {
+    RUSSIAN.store(is_russian(), std::sync::atomic::Ordering::Relaxed);
+    if let Some(en) = read_paths(resources, &[LANG_PATH]) {
+        let mut reverse = HashMap::new();
+        for (key, value) in en {
+            // Prefer menu keys when two share one English text.
+            let menu = ["options.", "menu.", "gui.", "controls.", "soundCategory.", "selectServer.",
+                "multiplayer.", "selectWorld.", "addServer.", "createWorld.", "key.", "title.",
+                "deathScreen.", "chat.", "skinCustomization.", "accessibility.", "resourcePack."];
+            let is_menu = menu.iter().any(|p| key.starts_with(p));
+            if is_menu || !reverse.contains_key(&value) {
+                reverse.insert(value, key);
+            }
+        }
+        *EN_REVERSE.write().unwrap_or_else(|e| e.into_inner()) = Some(reverse);
+    }
     let Some(map) = read(resources) else {
         return;
     };
@@ -99,6 +134,12 @@ pub fn load(resources: &dyn ResourceManager) {
 }
 
 fn read(resources: &dyn ResourceManager) -> Option<HashMap<String, String>> {
+    let overlay = overlay_path();
+    let paths: Vec<&str> = std::iter::once(LANG_PATH).chain(overlay.as_deref()).collect();
+    read_paths(resources, &paths)
+}
+
+fn read_paths(resources: &dyn ResourceManager, paths: &[&str]) -> Option<HashMap<String, String>> {
     let mut namespaces: Vec<String> = match resources.get_namespaces() {
         Ok(namespaces) => namespaces.into_iter().collect(),
         Err(error) => {
@@ -111,8 +152,6 @@ fn read(resources: &dyn ResourceManager) -> Option<HashMap<String, String>> {
     namespaces.sort_unstable();
     let mut translations = HashMap::new();
     let mut found = false;
-    let overlay = overlay_path();
-    let paths: Vec<&str> = std::iter::once(LANG_PATH).chain(overlay.as_deref()).collect();
     for (namespace, path) in paths
         .iter()
         .flat_map(|path| namespaces.iter().map(move |ns| (ns.clone(), *path)))

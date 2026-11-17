@@ -126,6 +126,22 @@ pub fn tick(
 
     update_fly_state(player, input, world, tags, vehicle, sin_y_rot, cos_y_rot);
 
+    // Vanilla `LocalPlayer.aiStep`: a fresh jump in the air with a glider
+    // starts gliding (`tryToStartFallFlying`), then START_FALL_FLYING.
+    if !player.was_jump_pressed
+        && raw_jump_held
+        && !player.on_ground
+        && !player.flying
+        && !player.fall_flying
+        && !is_passenger
+        && !player.in_water
+        && player.chest_glider
+        && !on_climbable(player, world.chunks, world.block_state_table, tags)
+    {
+        player.fall_flying = true;
+        player.start_fall_flying = true;
+    }
+
     // `LocalPlayer.aiStep`'s `goDownInWater`, before the living jump.
     if player.in_water
         && input.performing_action(input::Action::Sneak)
@@ -226,7 +242,9 @@ fn travel(
     sin_y_rot: f32,
     cos_y_rot: f32,
 ) {
-    if player.in_water && player.is_affected_by_fluids() {
+    if player.fall_flying && !player.flying && !(player.in_water && player.is_affected_by_fluids()) {
+        tick_fall_flying(player, input, world, tags, is_passenger, sin_y_rot, cos_y_rot);
+    } else if player.in_water && player.is_affected_by_fluids() {
         tick_water(
             player,
             input,
@@ -250,6 +268,82 @@ fn travel(
             sin_y_rot,
             cos_y_rot,
         );
+    }
+}
+
+/// Vanilla `LivingEntity.travelFallFlying` / `updateFallFlyingMovement`.
+fn tick_fall_flying(
+    player: &mut LocalPlayer,
+    input: &InputState,
+    world: CollisionWorld<'_>,
+    tags: &BlockTags,
+    is_passenger: bool,
+    sin_y_rot: f32,
+    cos_y_rot: f32,
+) {
+    if on_climbable(player, world.chunks, world.block_state_table, tags) {
+        player.fall_flying = false;
+        return;
+    }
+    // `Entity.calculateViewVector`.
+    let pitch = player.look_dir.x_rot_deg().to_radians();
+    let yaw = -player.look_dir.y_rot_deg().to_radians();
+    let (look_x, look_y, look_z) = (
+        f64::from(yaw.sin() * pitch.cos()),
+        f64::from(-pitch.sin()),
+        f64::from(yaw.cos() * pitch.cos()),
+    );
+    let _ = look_y;
+    let mut v = player.velocity;
+    let horiz = (look_x * look_x + look_z * look_z).sqrt();
+    let h_vel = (v.x * v.x + v.z * v.z).sqrt();
+    let g = gravity(player);
+    let lift = f64::from(pitch.cos()).powi(2);
+    v.y += g * (-1.0 + lift * 0.75);
+    if v.y < 0.0 && horiz > 0.0 {
+        let d = v.y * -0.1 * lift;
+        v.x += look_x * d / horiz;
+        v.y += d;
+        v.z += look_z * d / horiz;
+    }
+    if pitch < 0.0 && horiz > 0.0 {
+        let d = h_vel * f64::from(-pitch.sin()) * 0.04;
+        v.x += -look_x * d / horiz;
+        v.y += d * 3.2;
+        v.z += -look_z * d / horiz;
+    }
+    if horiz > 0.0 {
+        v.x += (look_x / horiz * h_vel - v.x) * 0.1;
+        v.z += (look_z / horiz * h_vel - v.z) * 0.1;
+    }
+    v.x *= f64::from(0.99f32);
+    v.y *= f64::from(0.98f32);
+    v.z *= f64::from(0.99f32);
+    player.velocity = v;
+    apply_collision(player, input, world, tags, is_passenger, 0.0, 0.0, sin_y_rot, cos_y_rot);
+    if player.on_ground {
+        player.fall_flying = false;
+    }
+}
+
+/// Vanilla `FireworkRocketEntity.tick`: an attached rocket pulls a gliding
+/// player along the look direction.
+pub fn apply_firework_boost(player: &mut LocalPlayer) {
+    if !player.fall_flying || player.boost_fireworks.is_empty() {
+        return;
+    }
+    let pitch = player.look_dir.x_rot_deg().to_radians();
+    let yaw = -player.look_dir.y_rot_deg().to_radians();
+    let look = (
+        f64::from(yaw.sin() * pitch.cos()),
+        f64::from(-pitch.sin()),
+        f64::from(yaw.cos() * pitch.cos()),
+    );
+    for _ in 0..player.boost_fireworks.len() {
+        let v = player.velocity;
+        player.velocity.x = v.x + look.0 * 0.1 + (look.0 * 1.5 - v.x) * 0.5;
+        player.velocity.y = v.y + look.1 * 0.1 + (look.1 * 1.5 - v.y) * 0.5;
+        player.velocity.z = v.z + look.2 * 0.1 + (look.2 * 1.5 - v.z) * 0.5;
     }
 }
 
@@ -896,6 +990,12 @@ fn update_player_pose(
     } else {
         STANDING_HEIGHT
     };
+    if player.fall_flying {
+        // Pose.FALL_FLYING: 0.6 tall like swimming.
+        player.swimming_pose = true;
+        player.crouching = false;
+        return;
+    }
     let (swimming_pose, crouching) = if player.swimming {
         (true, false)
     } else if is_passenger

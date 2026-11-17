@@ -114,6 +114,20 @@ pub fn build(
         for (i, data) in present.into_iter().enumerate() {
             let x = (cx - (91.0 + 6.0 + left_shift + (n - i as f32) * 17.0) * gs).round();
             common::push_item_icon(elements, x, y, size, gs, data);
+            // A worn piece darkens from the top down, as far as it's damaged.
+            if let Some((width, _)) = common::item_bar(data) {
+                let worn = 1.0 - (width as f32 / 13.0).clamp(0.0, 1.0);
+                if worn > 0.0 {
+                    elements.push(MenuElement::Rect {
+                        x,
+                        y,
+                        w: size,
+                        h: (size * worn).round(),
+                        corner_radius: 0.0,
+                        color: [0.0, 0.0, 0.0, 0.45],
+                    });
+                }
+            }
             common::push_item_decorations(elements, x, y, size, gs, data);
         }
     }

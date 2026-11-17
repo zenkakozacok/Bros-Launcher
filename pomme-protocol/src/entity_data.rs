@@ -34,6 +34,8 @@ pub enum Serializer {
     Variant(Variant),
     /// `RESOLVABLE_PROFILE` (a mannequin's profile): its `textures` property.
     Profile,
+    /// `OPTIONAL_UNSIGNED_INT`: 0 for none, else the value + 1.
+    OptionalUnsignedInt,
     Skip(Shape),
 }
 
@@ -51,7 +53,7 @@ impl Serializer {
                 r.varlong()?;
                 return Ok(true);
             }
-            Self::Int | Self::Pose | Self::Variant(_) => &Shape::VarInt,
+            Self::Int | Self::Pose | Self::Variant(_) | Self::OptionalUnsignedInt => &Shape::VarInt,
             Self::Float => &Shape::Float,
             Self::OptionalComponent => &Shape::Optional(&TEXT),
             Self::OptionalBlockPos => &Shape::Optional(&Shape::Long),
@@ -93,6 +95,8 @@ pub enum Value {
     Variant(Variant, u32),
     /// A profile's skin `textures` property value, if it carries one.
     Profile(Option<String>),
+    /// An optional unsigned int (a firework's attached entity id).
+    OptionalUnsignedInt(Option<u32>),
     /// A value the client doesn't read.
     Other,
 }
@@ -145,7 +149,7 @@ macro_rules! serializers_26_2 {
     S::Skip(List(usize::MAX, &PARTICLE)),
     S::VillagerData,
     // OPTIONAL_UNSIGNED_INT: 0 for none, else the value + 1.
-    S::Skip(VarInt),
+    S::OptionalUnsignedInt,
     S::Pose,
     S::Variant(Variant::Cat),
     // CAT_SOUND_VARIANT
@@ -244,6 +248,10 @@ impl ItemCodec {
             },
             S::Pose => Value::Pose(r.varint()?),
             S::Variant(variant) => Value::Variant(*variant, r.varint()?),
+            S::OptionalUnsignedInt => {
+                let v = r.varint()?;
+                Value::OptionalUnsignedInt(if v == 0 { None } else { Some(v - 1) })
+            }
             S::Profile => {
                 // ResolvableProfile: Either(full GameProfile, Partial), then
                 // PlayerSkin.Patch (skipped).
@@ -455,7 +463,9 @@ mod tests {
             (5, 1, &[9]),
         ]);
         let decoded = values(&bytes);
-        assert_eq!(decoded[..4], [const { Value::Other }; 4]);
+        assert_eq!(decoded[0], Value::Other);
+        assert_eq!(decoded[1], Value::OptionalUnsignedInt(None));
+        assert_eq!(decoded[2..4], [const { Value::Other }; 2]);
         assert_eq!(decoded[4], Value::Profile(None));
         assert_eq!(decoded[5], Value::Int(9));
     }

@@ -534,12 +534,13 @@ impl MenuGeometry {
                     color,
                     centered,
                 } => {
+                    let text = crate::lang::ui(text);
                     let start_x = if *centered {
-                        *x - self.mc_text_width(text, *scale) / 2.0
+                        *x - self.mc_text_width(&text, *scale) / 2.0
                     } else {
                         *x
                     };
-                    let span = TextSpan::new(text.clone(), *color);
+                    let span = TextSpan::new(text.into_owned(), *color);
                     self.push_text_into(
                         &mut drawn_objects,
                         &mut vertices,
@@ -1040,7 +1041,7 @@ impl MenuGeometry {
     }
 
     pub fn mc_text_width(&self, text: &str, scale: f32) -> f32 {
-        self.text_width_in(text, scale, None)
+        self.text_width_in(&crate::lang::ui(text), scale, None)
     }
 
     /// Text width in the SGA (`minecraft:alt`) glyphs.

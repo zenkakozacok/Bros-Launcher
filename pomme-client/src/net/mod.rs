@@ -692,6 +692,11 @@ pub enum NetworkEvent {
         actions: pomme_protocol::player_info::Actions,
         entries: Vec<crate::player::tab_list::PlayerInfoEntry>,
     },
+    /// A firework rocket's attached entity (elytra boost).
+    FireworkAttached {
+        id: i32,
+        target: Option<u32>,
+    },
     /// A mannequin's profile skin (`textures` property), drawn as a player.
     EntityProfileSkin {
         id: i32,

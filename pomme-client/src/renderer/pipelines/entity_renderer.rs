@@ -2652,15 +2652,26 @@ impl EntityRenderer {
                 info.flap,
                 info.flap_speed,
             ),
-            AnimationType::Humanoid => entity_model::compute_humanoid_anim(
-                model,
-                info.head_x_rot_deg,
-                local_head_y,
-                info.walk_anim_pos,
-                info.walk_anim_speed,
-                info.is_crouching,
-                info.is_passenger,
-            ),
+            AnimationType::Humanoid => {
+                let mut anim = entity_model::compute_humanoid_anim(
+                    model,
+                    info.head_x_rot_deg,
+                    local_head_y,
+                    info.walk_anim_pos,
+                    info.walk_anim_speed,
+                    info.is_crouching,
+                    info.is_passenger,
+                );
+                if info.entity_kind == EntityKind::Player {
+                    entity_model::apply_humanoid_attack(
+                        &mut anim,
+                        model,
+                        info.attack_time,
+                        info.head_x_rot_deg,
+                    );
+                }
+                anim
+            }
             AnimationType::Enderman => entity_model::compute_enderman_anim(
                 model,
                 info.head_x_rot_deg,

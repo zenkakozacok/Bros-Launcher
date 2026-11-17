@@ -5006,6 +5006,13 @@ pub fn update_game(
             armor: armor_render_infos(game.player.inventory.armor_slots()),
             has_red_overlay: has_red_overlay(game.player.hurt_time, game.player.death_time),
             death_time: render_death_time(game.player.death_time, partial_tick),
+            attack_time: game
+                .interaction
+                .swing_progress(pomme_protocol::serverbound::InteractionHand::MainHand, partial_tick)
+                .max(game.interaction.swing_progress(
+                    pomme_protocol::serverbound::InteractionHand::OffHand,
+                    partial_tick,
+                )),
             skip_cull: true,
             // Players drop their render offset before the shadow.
             shadow: ShadowCaster {

@@ -139,6 +139,11 @@ fn send_data_value(
                 absorption: *absorption,
             }
         }
+        // FireworkRocketEntity.DATA_ATTACHED_TO_TARGET.
+        (9, Value::OptionalUnsignedInt(target)) => NetworkEvent::FireworkAttached {
+            id,
+            target: *target,
+        },
         // Mannequin.DATA_PROFILE: server NPCs (Citizens) on 1.21.9+.
         (_, Value::Profile(textures)) => NetworkEvent::EntityProfileSkin {
             id,

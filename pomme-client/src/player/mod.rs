@@ -324,6 +324,15 @@ pub struct LocalPlayer {
     pub invisible: bool,
     /// The physical SWIMMING pose, chosen by `Player.updatePlayerPose`.
     pub swimming_pose: bool,
+    /// The shared FALL_FLYING flag (elytra gliding).
+    pub fall_flying: bool,
+    /// The chest slot holds a usable glider (elytra), refreshed each tick.
+    pub chest_glider: bool,
+    /// `tryToStartFallFlying` succeeded this tick: send START_FALL_FLYING.
+    pub start_fall_flying: bool,
+    /// Firework rockets attached to this player (vanilla
+    /// `FireworkRocketEntity.attachedToEntity`), boosting a glide.
+    pub boost_fireworks: std::collections::HashSet<i32>,
     /// `Entity.DATA_AIR_SUPPLY_ID`, as the server last sent it.
     pub air_supply: i32,
     /// Vanilla LocalPlayer.portalEffectIntensity: drives the full-screen
@@ -427,6 +436,10 @@ impl LocalPlayer {
             jump_riding_ticks: 0,
             jump_riding_scale: 0.0,
             abilities_dirty: false,
+            fall_flying: false,
+            chest_glider: false,
+            start_fall_flying: false,
+            boost_fireworks: std::collections::HashSet::new(),
             eye_height: STANDING_EYE_HEIGHT,
             prev_eye_height: STANDING_EYE_HEIGHT,
             walk_dist: 0.0,
@@ -575,6 +588,7 @@ impl LocalPlayer {
         self.on_fire = crate::entity::shared_flags_on_fire(flags);
         self.sprinting = flags & 0x08 != 0;
         self.swimming = flags & 0x10 != 0;
+        self.fall_flying = flags & 0x80 != 0;
         self.glowing = crate::entity::shared_flags_glowing(flags);
         self.invisible = crate::entity::shared_flags_invisible(flags);
     }

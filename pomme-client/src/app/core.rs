@@ -3326,6 +3326,7 @@ impl AppCore {
                             self.remove_player_skin(renderer, &uuid);
                         }
                         game.entity_positions.remove(id);
+                        game.player.boost_fireworks.remove(id);
                         game.entity_kinds.remove(id);
                         game.silent_entities.remove(id);
                         self.audio.stop_entity_sounds(*id);
@@ -3704,6 +3705,13 @@ impl AppCore {
                         }
                     }
                     game.tab_list.apply_update(&actions, &entries);
+                }
+                NetworkEvent::FireworkAttached { id, target } => {
+                    if target.is_some_and(|t| t as i32 == game.player.entity_id) {
+                        game.player.boost_fireworks.insert(id);
+                    } else {
+                        game.player.boost_fireworks.remove(&id);
+                    }
                 }
                 NetworkEvent::EntityProfileSkin { id, textures } => {
                     if let Some(entity) = game.entity_store.living.get(&id)
@@ -4255,6 +4263,14 @@ impl AppCore {
             jumpable: game.riding_jumpable_vehicle(),
         });
         let extra_boxes = game.collidable_entity_boxes();
+        game.player.chest_glider = matches!(
+            game.player.inventory.armor_slots().get(1),
+            Some(pomme_item::ItemStack::Present(d)) if d.kind == pomme_registry::builtin::ItemKind::Elytra
+        );
+        if !game.player.chest_glider {
+            game.player.fall_flying = false;
+        }
+        movement::apply_firework_boost(&mut game.player);
         movement::tick(
             &mut game.player,
             input,
@@ -4269,6 +4285,9 @@ impl AppCore {
             game.interaction.slow_due_to_using_item(),
             vehicle,
         );
+        if std::mem::take(&mut game.player.start_fall_flying) {
+            self.send_player_command(connection, game, PlayerCommand::StartFallFlying);
+        }
         let dx = game.player.position.x - game.player.prev_position.x;
         let dz = game.player.position.z - game.player.prev_position.z;
         crate::entity::update_walk_animation(

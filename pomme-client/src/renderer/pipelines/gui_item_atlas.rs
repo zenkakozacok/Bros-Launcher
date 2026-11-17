@@ -14,7 +14,9 @@ const MAX_ATLAS_PX: u32 = 4096;
 // animated sprite (`CuboidItemModelWrapper`, material flag 2) and re-renders
 // it every frame, so a magma block icon animates; pomme bakes those once.
 pub fn is_animated_item(item_name: &str) -> bool {
-    matches!(item_name, "compass" | "recovery_compass" | "clock")
+    // Bros Launcher: resource-pack custom items (custom model data) often use
+    // animated textures (lightning swords, fire scythes); redraw them.
+    matches!(item_name, "compass" | "recovery_compass" | "clock") || item_name.contains("_cmd_")
 }
 
 const COLOR_FORMAT: rhi::TextureFormat = rhi::TextureFormat::Rgba8Unorm;
