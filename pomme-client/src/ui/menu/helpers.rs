@@ -1078,17 +1078,16 @@ const DROP_FAILED: [f32; 4] = [1.0, 0.45, 0.45, 0.9];
 
 /// Dropdown widths in GUI units, wide enough for the longest label at
 /// `DropdownStyle`'s 10-unit pad plus 11-unit icon.
-pub(super) const DROP_LINKS_W: f32 = 74.0;
+pub(super) const DROP_LINKS_W: f32 = 110.0;
 pub(super) const DROP_THEME_W: f32 = 82.0;
 
-pub(super) const LINKS: [(&str, char, &str); 3] = [
-    ("Website", ICON_GLOBE, "https://pomme.rs"),
-    ("Discord", ICON_COMMENT, "https://discord.gg/ucBA55bHPR"),
-    (
-        "GitHub",
-        ICON_CODE,
-        "https://github.com/PommeMC/Pomme-Client",
-    ),
+pub(super) const LINKS: [(&str, char, &str); 6] = [
+    ("Bros-MC", ICON_GLOBE, "https://bros-mc.com"),
+    ("Bros-MC Discord", ICON_COMMENT, "https://discord.gg/5RdwEwAwhk"),
+    ("Bros Launcher", ICON_CODE, "https://github.com/zenkakozacok/Bros-Launcher"),
+    ("Pomme", ICON_GLOBE, "https://pomme.rs"),
+    ("Pomme Discord", ICON_COMMENT, "https://discord.gg/ucBA55bHPR"),
+    ("Pomme GitHub", ICON_CODE, "https://github.com/PommeMC/Client"),
 ];
 pub(super) const THEMES: [(&str, PanoramaTheme); 3] = [
     ("Java", PanoramaTheme::Java),

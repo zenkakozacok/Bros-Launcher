@@ -74,22 +74,41 @@ impl MainMenu {
         let col_x = cx - COL_W / 2.0 * gs;
         let col_w = COL_W * gs;
 
-        elements.push(MenuElement::Image {
-            x: cx - LOGO_W / 2.0 * gs,
-            y: LOGO_HEIGHT_OFFSET * gs,
-            w: LOGO_W * gs,
-            h: LOGO_H * gs,
-            sprite: SpriteId::MinecraftLogo,
-            tint: WHITE,
-        });
-        elements.push(MenuElement::Image {
-            x: cx - EDITION_W / 2.0 * gs,
-            y: (LOGO_HEIGHT_OFFSET + LOGO_H - EDITION_LOGO_OVERLAP) * gs,
-            w: EDITION_W * gs,
-            h: EDITION_H * gs,
-            sprite: SpriteId::MinecraftEdition,
-            tint: WHITE,
-        });
+        // Bros Launcher: its own logo in place of Minecraft's.
+        {
+            let title = "BROS LAUNCHER";
+            let title_fs = fs * 4.0;
+            let icon = LOGO_H * gs;
+            let title_w = text_width_fn(title, title_fs);
+            let total = icon + 6.0 * gs + title_w;
+            let left = cx - total / 2.0;
+            let top = LOGO_HEIGHT_OFFSET * gs;
+            elements.push(MenuElement::Image {
+                x: left,
+                y: top,
+                w: icon,
+                h: icon,
+                sprite: SpriteId::PommeLogo,
+                tint: WHITE,
+            });
+            elements.push(MenuElement::Text {
+                x: left + icon + 6.0 * gs,
+                y: top + (icon - title_fs) / 2.0,
+                text: title.into(),
+                scale: title_fs,
+                color: [1.0, 0.72, 0.16, 1.0],
+                centered: false,
+            });
+            elements.push(MenuElement::Text {
+                x: cx,
+                y: top + icon + 2.0 * gs,
+                text: "Bros-MC  ·  powered by Pomme".into(),
+                scale: fs,
+                color: [0.85, 0.85, 0.85, 1.0],
+                centered: true,
+            });
+        }
+        let _ = (LOGO_W, EDITION_W, EDITION_H, EDITION_LOGO_OVERLAP);
 
         self.push_splash(
             &mut elements,
@@ -266,7 +285,7 @@ impl MainMenu {
         elements.push(MenuElement::Text {
             x: 2.0 * gs,
             y: footer_y,
-            text: format!("Minecraft {}", self.version),
+            text: format!("Bros Launcher {} · Minecraft {}", crate::update::version(), self.version),
             scale: fs,
             color: WHITE,
             centered: false,
