@@ -257,7 +257,7 @@ impl MainMenu {
             OptRow::Pair("Video Settings...", "Controls..."),
             OptRow::Pair("Language...", "Chat Settings..."),
             OptRow::Pair("Resource Packs...", "Accessibility Settings..."),
-            OptRow::Pair("Telemetry Data...", "Credits & Attribution..."),
+            OptRow::Pair("Bros HUD...", "Credits & Attribution..."),
         ];
 
         let nav: &[(&str, Screen)] = &[
@@ -270,7 +270,7 @@ impl MainMenu {
             ("Chat Settings...", Screen::OptionsChatSettings),
             ("Resource Packs...", Screen::OptionsResourcePacks),
             ("Accessibility Settings...", Screen::OptionsAccessibility),
-            ("Telemetry Data...", Screen::OptionsTelemetry),
+            ("Bros HUD...", Screen::OptionsTelemetry),
             ("Credits & Attribution...", Screen::OptionsCredits),
         ];
 
@@ -278,7 +278,7 @@ impl MainMenu {
         let sliders: &[(&str, f32)] = &[("FOV:", fov_frac)];
         // Nav rows are disabled only where the target is a `build_options_stub`
         // page; screens with real (if inert) controls stay reachable.
-        let disabled = &["Language...", "Telemetry Data..."];
+        let disabled: &[&str] = &[];
         self.build_options_grid(
             sw,
             sh,
@@ -2128,18 +2128,95 @@ impl MainMenu {
 
         let chrome = push_screen_chrome(&mut elements, sw, sh, gs, title);
 
-        let body_fs = 10.0 * gs;
-        elements.push(MenuElement::Text {
-            x: cx,
-            y: (chrome.content_top + chrome.content_bottom) / 2.0 - body_fs / 2.0,
-            text: "Coming soon".into(),
-            scale: body_fs,
-            color: COL_DIM,
-            centered: true,
-        });
-
         self.focus_advance(input);
         let mut ctx = self.make_focus_ctx(input);
+        if title == "Language" {
+            // Bros Launcher: English / Russian.
+            let ru = crate::lang::is_russian();
+            let (w, h) = (200.0 * gs, 20.0 * gs);
+            let mid = (chrome.content_top + chrome.content_bottom) / 2.0;
+            for (i, (label, code, active)) in [
+                ("English (US)", "en_us", !ru),
+                ("Русский", "ru_ru", ru),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                let y = mid - h - 2.0 * gs + i as f32 * (h + 4.0 * gs);
+                let text = if active { format!("> {label} <") } else { label.to_string() };
+                let pressed = push_button_f(
+                    &mut elements,
+                    &mut ctx,
+                    &mut any_hovered,
+                    input.cursor,
+                    input.clicked,
+                    cx - w / 2.0,
+                    y,
+                    w,
+                    h,
+                    gs,
+                    &text,
+                    true,
+                );
+                if pressed && !active {
+                    crate::lang::set_language(code);
+                }
+            }
+        } else if title == "Bros HUD" {
+            let mut s = crate::bros_hud::get();
+            let ru = crate::lang::is_russian();
+            let onoff = |b: bool| if b { if ru { "ВКЛ" } else { "ON" } } else if ru { "ВЫКЛ" } else { "OFF" };
+            let (w, h) = (220.0 * gs, 20.0 * gs);
+            let top = chrome.content_top + 8.0 * gs;
+            let rows: [(&str, &str, bool); 5] = [
+                ("Bros HUD", "Bros HUD", s.enabled),
+                ("Броня слева от хотбара", "Armor left of hotbar", s.armor),
+                ("Предмет в руке справа", "Held item count", s.held_item),
+                ("Таблица справа 85%", "Sidebar 85%", s.small_sidebar),
+                ("Подсказка при входе", "Hint on join", s.join_hint),
+            ];
+            let mut changed = None;
+            for (i, (label_ru, label_en, on)) in rows.into_iter().enumerate() {
+                let y = top + i as f32 * (h + 4.0 * gs);
+                let text = format!("{}: {}", if ru { label_ru } else { label_en }, onoff(on));
+                if push_button_f(
+                    &mut elements,
+                    &mut ctx,
+                    &mut any_hovered,
+                    input.cursor,
+                    input.clicked,
+                    cx - w / 2.0,
+                    y,
+                    w,
+                    h,
+                    gs,
+                    &text,
+                    i == 0 || s.enabled,
+                ) {
+                    changed = Some(i);
+                }
+            }
+            if let Some(i) = changed {
+                match i {
+                    0 => s.enabled = !s.enabled,
+                    1 => s.armor = !s.armor,
+                    2 => s.held_item = !s.held_item,
+                    3 => s.small_sidebar = !s.small_sidebar,
+                    _ => s.join_hint = !s.join_hint,
+                }
+                crate::bros_hud::set(s);
+            }
+        } else {
+            let body_fs = 10.0 * gs;
+            elements.push(MenuElement::Text {
+                x: cx,
+                y: (chrome.content_top + chrome.content_bottom) / 2.0 - body_fs / 2.0,
+                text: "Coming soon".into(),
+                scale: body_fs,
+                color: COL_DIM,
+                centered: true,
+            });
+        }
         let done = if let Some((label, target)) = footer_nav {
             // Vanilla `LanguageSelectScreen`: two buttons in the footer.
             let (w, gap) = (FOOTER_PAIR_W * gs, FOOTER_PAIR_GAP * gs);

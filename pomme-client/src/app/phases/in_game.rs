@@ -3655,6 +3655,23 @@ pub fn update_game(
             &attack,
             &|t, s| gfx.renderer.menu_text_width(t, s),
         );
+        if !crate::player::is_spectator(game.player.game_mode) {
+            let inv = &game.player.inventory;
+            let held = inv.hotbar_slots()
+                .get(core.input.selected_slot() as usize)
+                .unwrap_or(&pomme_item::ItemStack::Empty);
+            crate::bros_hud::build(
+                &mut elements,
+                sw,
+                sh,
+                gs,
+                inv.slots(),
+                inv.armor_slots(),
+                held,
+                core.menu.main_hand_right(),
+                matches!(inv.offhand(), pomme_item::ItemStack::Present(_)),
+            );
+        }
         if core.input.touch().seen() && game.world_has_pointer() {
             let layout = input::touch::TouchLayout {
                 width: sw,

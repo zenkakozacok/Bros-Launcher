@@ -6,6 +6,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod account;
 mod app;
+mod bros_hud;
 mod args;
 mod assets;
 mod attribute;

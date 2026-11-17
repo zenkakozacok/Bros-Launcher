@@ -13,6 +13,7 @@ const LANG_PATH: &str = "lang/en_us.json";
 fn overlay_path() -> Option<String> {
     let code = std::env::var("BROS_LANG")
         .ok()
+        .or_else(saved_language)
         .or_else(sys_locale::get_locale)
         .unwrap_or_default()
         .to_ascii_lowercase()
@@ -28,6 +29,42 @@ fn overlay_path() -> Option<String> {
         return None;
     };
     Some(format!("lang/{lang}.json"))
+}
+
+fn language_file() -> std::path::PathBuf {
+    pomme_dirs::layout().profiles().join("bros_language.txt")
+}
+
+/// The language picked on the Language screen, if any.
+pub fn saved_language() -> Option<String> {
+    std::fs::read_to_string(language_file())
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// Whether Russian is drawn over English right now.
+pub fn is_russian() -> bool {
+    overlay_path().is_some_and(|p| p.contains("ru_ru"))
+}
+
+static RELOAD: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Saves `code` (`en_us` / `ru_ru`) and asks the app to reload translations.
+pub fn set_language(code: &str) {
+    let path = language_file();
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Err(error) = std::fs::write(&path, code) {
+        tracing::warn!(%error, "Couldn't save the language");
+    }
+    RELOAD.store(true, std::sync::atomic::Ordering::Release);
+}
+
+/// Whether [`set_language`] asked for a reload since the last call.
+pub fn take_reload() -> bool {
+    RELOAD.swap(false, std::sync::atomic::Ordering::AcqRel)
 }
 
 /// Values are interned, so strings handed out before a reload stay valid.

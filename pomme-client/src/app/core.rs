@@ -3553,6 +3553,11 @@ impl AppCore {
                     online_mode,
                 } => {
                     connection.packet_tx.chat_login(online_mode);
+                    if let Some(hint) = crate::bros_hud::join_hint() {
+                        let spans = vec![crate::ui::text::TextSpan::new(hint.to_string(), [1.0; 4])];
+                        game.chat
+                            .push_message(crate::ui::text::legacy_format_spans(&spans, true));
+                    }
                     game.recipe_book_ui
                         .reset_for_closed_screen(&mut game.recipe_book);
                     game.recipe_book.reset_for_login();

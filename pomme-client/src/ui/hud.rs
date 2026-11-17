@@ -836,7 +836,7 @@ pub fn build_hud(
         elements,
         screen_w,
         screen_h,
-        gs,
+        gs * crate::bros_hud::sidebar_scale(),
         scoreboard,
         text_width_fn,
         spans_width_fn,

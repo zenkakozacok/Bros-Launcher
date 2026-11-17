@@ -1245,7 +1245,9 @@ impl InputState {
         }
         for action in self.bound_actions(InputKey::Mouse(button)) {
             match action {
-                Action::Destroy | Action::Use => {
+                // Bros Launcher: a click on a screen (Back to Game, a GUI)
+                // must not reach the game as an attack or use once it closes.
+                Action::Destroy | Action::Use if self.gameplay() || !was_pressed => {
                     self.recent_actions.insert(action, was_pressed);
                 }
                 Action::PickBlock if !was_pressed => self.middle_click.set(false),

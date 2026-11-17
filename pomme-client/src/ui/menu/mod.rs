@@ -978,7 +978,12 @@ impl MainMenu {
             theme_open: false,
             dropdown_rect: None,
             settings_back: Screen::Options,
-            theme: PanoramaTheme::from_u8(settings.theme),
+            // Bros Launcher: the Java look by default (the Pomme theme is
+            // still in the list).
+            theme: match PanoramaTheme::from_u8(settings.theme) {
+                PanoramaTheme::Pomme => PanoramaTheme::Java,
+                theme => theme,
+            },
             transition: None,
             bedrock_dir,
             bedrock: Arc::new(parking_lot::Mutex::new(BedrockDownload::Idle)),
@@ -1762,7 +1767,7 @@ impl MainMenu {
                 screen_w,
                 screen_h,
                 input,
-                "Telemetry Data",
+                "Bros HUD",
                 Screen::Options,
                 None,
                 key_bindings,

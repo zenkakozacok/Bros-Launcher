@@ -1314,6 +1314,9 @@ impl ApplicationHandler for App {
                 };
 
                 let core = &mut self.core;
+                if crate::lang::take_reload() {
+                    crate::lang::load(core.resources());
+                }
 
                 let should_apply_cursor_grab = core.input.update(&mut self.phase);
                 if should_apply_cursor_grab

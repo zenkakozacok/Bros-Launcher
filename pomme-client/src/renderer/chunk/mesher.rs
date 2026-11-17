@@ -2358,6 +2358,9 @@ fn should_render_face(
     if block_state_data.culls_same(direction) && block_state_data.id() == neighbour.id() {
         return false;
     }
+    if pane_skips_rendering(block_state_data, neighbour, direction) {
+        return false;
+    }
     match (face_occlusion_shape(block_state_data, direction), occluder) {
         (FaceShape::Mask(shape), Some(occluder)) => shape
             .iter()
@@ -2365,6 +2368,31 @@ fn should_render_face(
             .any(|(own, theirs)| own & !theirs != 0),
         _ => true,
     }
+}
+
+/// Vanilla `IronBarsBlock.skipRendering` (glass panes, iron bars): against
+/// its own kind it hides the top/bottom, and a side both panes connect on.
+fn pane_skips_rendering(
+    block_state_data: &BlockStateData,
+    neighbour: &BlockStateData,
+    direction: Direction,
+) -> bool {
+    let id = block_state_data.id();
+    if !(id.ends_with("glass_pane") || id == "iron_bars") || neighbour.id() != id {
+        return false;
+    }
+    let name = |d: Direction| match d {
+        Direction::North => Some("north"),
+        Direction::South => Some("south"),
+        Direction::West => Some("west"),
+        Direction::East => Some("east"),
+        Direction::Up | Direction::Down => None,
+    };
+    let (Some(own), Some(theirs)) = (name(direction), name(direction.opposite())) else {
+        return true;
+    };
+    block_state_data.properties().get(own) == Some("true")
+        && neighbour.properties().get(theirs) == Some("true")
 }
 
 fn same_fluid(block_state_data: &BlockStateData, kind: FluidKind) -> bool {
